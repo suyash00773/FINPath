@@ -28,6 +28,7 @@ import {
   UserAccount,
   AuthSession,
 } from './types';
+import { createLocalDemoSession } from './utils/apiClient';
 import {
   Sparkles,
   Sliders,
@@ -129,6 +130,13 @@ export function App() {
       if (sData?.authenticated && sData?.user) {
         setCurrentUser(sData.user);
         setIsDemoMode(Boolean(sData.isDemo));
+        if (pathname === '/login' || pathname === '/login/verify') {
+          navigate('/dashboard');
+        }
+      } else if (token && (token.includes('demo') || token.startsWith('finpath_demo_session'))) {
+        const localSession = createLocalDemoSession();
+        setCurrentUser(localSession.user);
+        setIsDemoMode(true);
         if (pathname === '/login' || pathname === '/login/verify') {
           navigate('/dashboard');
         }
