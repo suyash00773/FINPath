@@ -1,0 +1,6 @@
+{
+  "name": "FinPath",
+  "description": "AI Financial Decision & Journey Copilot – Borrow, Save, Protect, Wait.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
