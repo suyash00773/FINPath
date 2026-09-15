@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { UserAccount, AuthSession, FinancialProfile, FinancialHealth } from '../types';
 import { formatINR } from '../utils/formatters';
+import { fetchJson } from '../utils/apiClient';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -124,15 +125,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     setLoading(true);
 
     try {
-      const res = await fetch('/api/auth/send-otp', {
+      const { ok, data, error: apiErr } = await fetchJson('/api/auth/send-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ destination: otpDestination }),
       });
 
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to send OTP to customer');
+      if (!ok || !data) {
+        throw new Error(apiErr || 'Failed to send OTP to customer');
       }
 
       setSentOtpInfo({
@@ -160,7 +160,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     setLoading(true);
 
     try {
-      const res = await fetch('/api/auth/verify-otp', {
+      const { ok, data, error: apiErr } = await fetchJson('/api/auth/verify-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -169,9 +169,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         }),
       });
 
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || 'OTP verification failed');
+      if (!ok || !data) {
+        throw new Error(apiErr || 'OTP verification failed');
       }
 
       setSuccessMsg(`Welcome, ${data.user.name}! Verified successfully via OTP.`);
@@ -204,15 +203,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     const targetPassword = customPass || password;
 
     try {
-      const res = await fetch('/api/auth/login', {
+      const { ok, data, error: apiErr } = await fetchJson('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: targetEmail, password: targetPassword }),
       });
 
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || 'Authentication failed. Check your email & password.');
+      if (!ok || !data) {
+        throw new Error(apiErr || 'Authentication failed. Check your email & password.');
       }
 
       setSuccessMsg(`Welcome back, ${data.session.user.name}!`);
@@ -236,7 +234,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     setLoading(true);
 
     try {
-      const res = await fetch('/api/auth/register', {
+      const { ok, data, error: apiErr } = await fetchJson('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -248,9 +246,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         }),
       });
 
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || 'Registration failed');
+      if (!ok || !data) {
+        throw new Error(apiErr || 'Registration failed');
       }
 
       setSuccessMsg(`Account created successfully for ${data.user.name}!`);
@@ -271,15 +268,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     setError(null);
     setLoading(true);
     try {
-      const res = await fetch('/api/auth/switch-user', {
+      const { ok, data, error: apiErr } = await fetchJson('/api/auth/switch-user', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId }),
       });
 
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || 'Switch failed');
+      if (!ok || !data) {
+        throw new Error(apiErr || 'Switch failed');
       }
 
       localStorage.setItem('finpath_auth_token', data.session.token);

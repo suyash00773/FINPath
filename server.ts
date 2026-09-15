@@ -19,15 +19,17 @@ const PORT = Number(process.env.PORT) || 3000;
 app.use(express.json());
 app.use(cookieParser());
 
-async function startServer() {
+// URL normalization & request logging middleware for serverless/Vercel compatibility
+app.use((req: Request, _res: Response, next) => {
+  if (req.url && !req.url.startsWith('/api/') && req.url !== '/api') {
+    req.url = '/api' + (req.url.startsWith('/') ? req.url : '/' + req.url);
+  }
+  if (req.path.startsWith('/api/')) {
+    console.log(`[API] ${req.method} ${req.path}`);
+  }
+  next();
+});
 
-  // Log API requests
-  app.use((req, res, next) => {
-    if (req.path.startsWith('/api/')) {
-      console.log(`[API] ${req.method} ${req.path}`);
-    }
-    next();
-  });
 
   // Health check
   app.get('/api/health', (req: Request, res: Response) => {
@@ -929,27 +931,29 @@ async function startServer() {
     res.json({ success: true, message: 'Demo reset to original ₹72K income / Shop expansion state' });
   });
 
-  // Vite middleware for development vs static files for production
-  if (!process.env.VERCEL) {
-    if (process.env.NODE_ENV !== 'production') {
-      const vite = await createViteServer({
-        server: { middlewareMode: true },
-        appType: 'spa',
-      });
-      app.use(vite.middlewares);
-    } else {
-      const distPath = path.join(process.cwd(), 'dist');
-      app.use(express.static(distPath));
-      app.get('*', (req, res) => {
-        res.sendFile(path.join(distPath, 'index.html'));
+  // Vite middleware for development vs static files for production (Non-Vercel environment)
+  async function startServer() {
+    if (!process.env.VERCEL) {
+      if (process.env.NODE_ENV !== 'production') {
+        const vite = await createViteServer({
+          server: { middlewareMode: true },
+          appType: 'spa',
+        });
+        app.use(vite.middlewares);
+      } else {
+        const distPath = path.join(process.cwd(), 'dist');
+        app.use(express.static(distPath));
+        app.get('*', (req, res) => {
+          res.sendFile(path.join(distPath, 'index.html'));
+        });
+      }
+
+      app.listen(PORT, '0.0.0.0', () => {
+        console.log(`[FinPath] Server running on port ${PORT}`);
       });
     }
-
-    app.listen(PORT, '0.0.0.0', () => {
-      console.log(`[FinPath] Server running on port ${PORT}`);
-    });
   }
-}
 
-startServer();
+  startServer();
+
 

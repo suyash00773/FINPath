@@ -21,6 +21,7 @@ import {
   DecisionRun,
 } from '../types';
 import { formatINR } from '../utils/formatters';
+import { fetchJson } from '../utils/apiClient';
 
 interface ScenarioLabViewProps {
   profile: FinancialProfile;
@@ -60,14 +61,13 @@ export const ScenarioLabView: React.FC<ScenarioLabViewProps> = ({
         loanInterestRateDelta: intDelta,
       };
 
-      const res = await fetch('/api/scenarios', {
+      const { ok, data } = await fetchJson('/api/scenarios', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ scenario, goalId: goal.id }),
       });
 
-      if (res.ok) {
-        const data = await res.json();
+      if (ok && data?.result) {
         setStressResult(data.result);
       }
     } catch (e) {

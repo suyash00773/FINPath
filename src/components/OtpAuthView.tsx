@@ -12,6 +12,7 @@ import {
   Lock,
 } from 'lucide-react';
 import { UserAccount, FinancialProfile, FinancialHealth } from '../types';
+import { fetchJson, createLocalDemoSession } from '../utils/apiClient';
 
 interface OtpAuthViewProps {
   initialStep?: 'login' | 'verify';
@@ -99,15 +100,14 @@ export const OtpAuthView: React.FC<OtpAuthViewProps> = ({
     setLoginState('sending');
 
     try {
-      const res = await fetch('/api/auth/send-otp', {
+      const { ok, data, error } = await fetchJson('/api/auth/send-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone: fullPhone }),
       });
 
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to send OTP. Please try again.');
+      if (!ok || !data?.success) {
+        throw new Error(error || 'Failed to send OTP. Please try again.');
       }
 
       setLoginState('sent');
@@ -136,15 +136,14 @@ export const OtpAuthView: React.FC<OtpAuthViewProps> = ({
     const fullPhone = `+91${phoneDigits}`;
 
     try {
-      const res = await fetch('/api/auth/resend-otp', {
+      const { ok, data, error } = await fetchJson('/api/auth/resend-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone: fullPhone }),
       });
 
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to resend OTP');
+      if (!ok || !data?.success) {
+        throw new Error(error || 'Failed to resend OTP');
       }
 
       setTimerSeconds(30);
@@ -221,15 +220,14 @@ export const OtpAuthView: React.FC<OtpAuthViewProps> = ({
     const fullPhone = `+91${phoneDigits}`;
 
     try {
-      const res = await fetch('/api/auth/verify-otp', {
+      const { ok, data, error } = await fetchJson('/api/auth/verify-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone: fullPhone, otp: code }),
       });
 
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || 'Verification failed. Check the code.');
+      if (!ok || !data?.user) {
+        throw new Error(error || 'Verification failed. Check the code.');
       }
 
       setVerifyState('verified');
@@ -252,22 +250,28 @@ export const OtpAuthView: React.FC<OtpAuthViewProps> = ({
     setDemoState('loading');
 
     try {
-      const res = await fetch('/api/auth/demo-login', {
+      const { ok, data } = await fetchJson('/api/auth/demo-login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
       });
 
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to start demo session');
+      if (ok && data?.success && data?.user) {
+        setTimeout(() => {
+          onLoginSuccess(data.user, data.profile, data.health, true, data.sessionId);
+        }, 300);
+      } else {
+        const localSession = createLocalDemoSession();
+        setTimeout(() => {
+          onLoginSuccess(localSession.user, localSession.profile, localSession.health, true, localSession.sessionId);
+        }, 300);
       }
-
+    } catch (err) {
+      const localSession = createLocalDemoSession();
       setTimeout(() => {
-        onLoginSuccess(data.user, data.profile, data.health, true, data.sessionId);
-      }, 500);
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Demo session initialization failed');
-      setDemoState('idle');
+        onLoginSuccess(localSession.user, localSession.profile, localSession.health, true, localSession.sessionId);
+      }, 300);
+    } finally {
+      setTimeout(() => setDemoState('idle'), 500);
     }
   };
 

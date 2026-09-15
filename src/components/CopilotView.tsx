@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { CopilotMessage, LanguageMode, FinancialGoal, DecisionRun } from '../types';
 import { formatINR } from '../utils/formatters';
+import { fetchJson } from '../utils/apiClient';
 
 interface CopilotViewProps {
   language: LanguageMode;
@@ -97,18 +98,20 @@ export const CopilotView: React.FC<CopilotViewProps> = ({
     setLoading(true);
 
     try {
-      const res = await fetch('/api/copilot', {
+      const { ok, data, error: apiErr } = await fetchJson('/api/copilot', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: userText, language }),
       });
 
-      const data = await res.json();
+      if (!ok || !data) {
+        throw new Error(apiErr || 'Failed to reach AI Copilot');
+      }
 
       const assistantMsg: CopilotMessage = {
         id: `msg_bot_${Date.now()}`,
         sender: 'assistant',
-        text: data.reply,
+        text: data.reply || 'Decision Engine evaluated your query.',
         timestamp: new Date().toISOString(),
         toolsUsed: data.toolsInvoked,
         extractedGoal: data.extractedGoal,

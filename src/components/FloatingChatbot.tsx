@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { CopilotMessage, LanguageMode, FinancialGoal, DecisionRun } from '../types';
 import { formatINR } from '../utils/formatters';
+import { fetchJson } from '../utils/apiClient';
 
 interface FloatingChatbotProps {
   language: LanguageMode;
@@ -59,10 +60,9 @@ export const FloatingChatbot: React.FC<FloatingChatbotProps> = ({
   // Load chat history from backend on open
   useEffect(() => {
     if (isOpen) {
-      fetch('/api/copilot/history')
-        .then((res) => res.json())
-        .then((data) => {
-          if (data.history && data.history.length > 0) {
+      fetchJson('/api/copilot/history')
+        .then(({ ok, data }) => {
+          if (ok && data?.history && data.history.length > 0) {
             setMessages(data.history);
           }
         })
@@ -91,7 +91,7 @@ export const FloatingChatbot: React.FC<FloatingChatbotProps> = ({
 
   const handleClearHistory = async () => {
     try {
-      await fetch('/api/copilot/history', { method: 'DELETE' });
+      await fetchJson('/api/copilot/history', { method: 'DELETE' });
       setMessages([
         {
           id: `init_${Date.now()}`,
@@ -121,18 +121,20 @@ export const FloatingChatbot: React.FC<FloatingChatbotProps> = ({
     setLoading(true);
 
     try {
-      const res = await fetch('/api/copilot', {
+      const { ok, data, error: apiErr } = await fetchJson('/api/copilot', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: textToSend, language }),
       });
 
-      const data = await res.json();
+      if (!ok || !data) {
+        throw new Error(apiErr || 'Failed to communicate with Copilot');
+      }
 
       const assistantMsg: CopilotMessage = {
         id: `float_bot_${Date.now()}`,
         sender: 'assistant',
-        text: data.reply,
+        text: data.reply || 'FinPath Decision Engine processed your request.',
         timestamp: new Date().toISOString(),
         toolsUsed: data.toolsInvoked,
         extractedGoal: data.extractedGoal,
